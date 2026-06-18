@@ -1,21 +1,29 @@
+# Secrets
+.env
+.streamlit/secrets.toml
+
 # Python
 __pycache__/
 *.pyc
+*.py[cod]
+*.egg-info/
 .venv/
 venv/
+env/
 
-# Environment variables
-.env
+# Caches
+.cache/
+.pytest_cache/
+.mypy_cache/
+nltk_data/
 
 # Streamlit
-.streamlit/
+.streamlit/cache/
 
-# IDE
-.vscode/
-.idea/
-
-# OS
+# OS / IDE
 .DS_Store
+.idea/
+.vscode/
 
 # Logs
 *.log

@@ -1,0 +1,28 @@
+# ---- Core web app -----------------------------------------------------------
+streamlit==1.39.0
+
+# ---- Market & news data -----------------------------------------------------
+yfinance==0.2.44
+requests==2.32.3
+
+# ---- Data & technical analysis ----------------------------------------------
+pandas==2.2.3
+numpy==1.26.4
+
+# ---- Charts -----------------------------------------------------------------
+plotly==5.24.1
+
+# ---- AI: LLM recommendation -------------------------------------------------
+openai==1.51.0
+
+# ---- AI: Chatbot (free tier — Groq primary, Gemini fallback) ----------------
+groq>=1.0.0
+google-genai>=2.0.0
+
+# ---- AI: news sentiment (FinBERT primary, VADER fallback) -------------------
+transformers==4.44.2
+torch==2.4.1
+nltk==3.9.1
+
+# ---- Configuration ----------------------------------------------------------
+python-dotenv==1.0.1
