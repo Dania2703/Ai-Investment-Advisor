@@ -1,30 +1,71 @@
-# 📈 AI Investment Advisor — יועץ השקעות מבוסס בינה מלאכותית
+---
+title: AI Investment Advisor
+emoji: 📈
+colorFrom: blue
+colorTo: green
+sdk: docker
+app_port: 7860
+pinned: false
+---
 
-> פרויקט גמר · קורס *"בינה מלאכותית וחדשנות בשוק ההון"* · מסלול 3 — אפליקציית AI למשקיעים
+# 📈 AI Investment Advisor
 
-אפליקציית ווב שמקבלת **סימול מניה (Ticker)**, מושכת נתוני שוק וחדשות בזמן אמת,
-מנתחת סנטימנט באמצעות מודל AI, מחשבת אינדיקטורים טכניים, ולבסוף מפעילה מודל
-שפה גדול (LLM) שמפיק **המלצת השקעה מנומקת: Buy / Hold / Sell**.
+AI-powered stock analysis tool that combines technical indicators, news sentiment, and LLM reasoning to produce educational Buy / Hold / Sell recommendations.
+
+> Final project · *AI & Innovation in Capital Markets* · Track 3
 
 ---
 
-## ✨ תכונות עיקריות (Features)
+## Tech Stack
 
-| # | יכולת | מקור / טכנולוגיה |
-|---|-------|------------------|
-| 1 | מחיר ונתוני שוק בזמן אמת | Yahoo Finance (`yfinance`) |
-| 2 | גרף נרות + ממוצעים נעים + MACD + RSI | Plotly |
-| 3 | חדשות פיננסיות אחרונות | NewsAPI |
-| 4 | ניתוח סנטימנט בעזרת AI | FinBERT (Transformers) + נפילה רכה ל-VADER |
-| 5 | אינדיקטורים טכניים | RSI · MACD · SMA 50 · SMA 200 |
-| 6 | המלצת השקעה מנומקת | OpenAI LLM + מנוע גיבוי מבוסס-חוקים |
-| 7 | ממשק משתמש אינטראקטיבי | Streamlit |
+| Component | Technology |
+|---|---|
+| **Frontend** | Streamlit — multi-page (landing · login · register · dashboard) with a custom dark fintech theme |
+| **Auth** | SQLAlchemy users + PBKDF2 password hashing + signed session tokens |
+| **User DB** | Postgres in production (via `DATABASE_URL`), SQLite fallback for local dev |
+| **Market Data** | Finnhub (quote) · yfinance (clean OHLCV history) |
+| **News** | Finnhub News API |
+| **Indicators** | Native NumPy/pandas, TradingView-aligned (RSI, MACD, SMA50/200, EMA20/50/200, Bollinger, Stochastic RSI, ADX, ATR, OBV, Volume SMA, Support/Resistance) |
+| **Decision** | Deterministic weighted scoring engine (0–100) |
+| **AI Model** | OpenAI GPT-4.1 — *explains* the score, does not decide it |
+| **Sentiment** | FinBERT (fallback: VADER) |
+| **Charts** | TradingView Lightweight Charts (dark theme) |
+| **Chatbot** | Floating RAG assistant — Groq (Llama 3.3) / Gemini |
+| **Deployment** | Hugging Face Spaces (Docker) |
 
-> **חשוב:** הכלי חינוכי בלבד ואינו מהווה ייעוץ השקעות.
+### Folder structure
+
+```
+app.py                       # thin entry point: theme + session restore + router
+config.py                    # env-driven settings (API keys, DATABASE_URL, SECRET_KEY)
+src/
+  auth/                      # authentication layer
+    models.py                #   SQLAlchemy User + SavedAnalysis, engine/session
+    service.py               #   register/login, PBKDF2 hashing, signed tokens, history
+  data/                      # service layer (market_data, news_data, database)
+  analysis/                  # analysis layer (indicators, technical, sentiment, scoring)
+  ai/                        # AI layer (advisor narration, RAG chatbot)
+  ui/                        # presentation layer
+    theme.py                 #   design system + global dark CSS
+    nav.py                   #   session-state router
+    components.py            #   TradingView chart
+    chatbot_widget.py        #   floating bottom-right assistant
+    pages/                   #   landing.py · auth_view.py · dashboard.py
+```
+
+The dashboard renders in a fixed order: **AI Executive Summary → Market Snapshot
+→ Technical Indicators → Interactive Chart → News Analysis → Detailed AI Analysis
+→ Saved History**, with clickable source links (Yahoo, Finnhub, SEC EDGAR,
+Investor Relations, news) so every figure is verifiable. When data can't be
+retrieved the UI shows **"Data unavailable"** — never a fabricated value.
 
 ---
 
-## 🏗️ ארכיטקטורה (Architecture)
+## Architecture
+
+The key design principle: **the scoring engine decides, the LLM explains.**
+The rating is produced by a transparent, deterministic, weighted score — so the
+same inputs always yield the same recommendation. GPT-4.1 only narrates it.
 
 ```
 User ──> Streamlit UI (app.py)
@@ -36,159 +77,130 @@ User ──> Streamlit UI (app.py)
           │            │              │            │
           ▼            ▼              ▼            ▼
    Market Data    News Data     Sentiment     Technical
-   (Yahoo Fin.)   (NewsAPI)     (FinBERT/      (RSI, MACD,
-                                 VADER)         SMA50/200)
+   (Finnhub +    (Finnhub)     (FinBERT/     (indicators.py:
+    yfinance)                   VADER)        RSI, MACD, SMA,
+                                              EMA, Bollinger,
+                                              StochRSI, ADX,
+                                              ATR, OBV, S/R)
           │            │              │            │
           └────────────┴──────┬───────┴────────────┘
                               ▼
-                     AI Advisor (LLM)
-                  Buy / Hold / Sell + נימוק
+              ┌───────────────────────────────────┐
+              │   Scoring Engine (scoring.py)      │
+              │   Trend 40% · Momentum 25% ·       │
+              │   Volume 15% · Volatility 10% ·    │
+              │   Sentiment 10%  ──>  0–100 score  │
+              │   0-30 Strong Sell ... 71+ Strong Buy │
+              └───────────────────────────────────┘
                               ▼
-                    Streamlit UI Output
+                   AI Advisor (advisor.py)
+            GPT-4.1 EXPLAINS the score (never overrides it)
+            → technical summary, sentiment, risks, rationale
+                              ▼
+        TradingView Charts + transparency panels (UI)
+                              ▼
+                        SQLite (save)
 ```
 
-תרשים מפורט יותר נמצא ב-[`docs/architecture.md`](docs/architecture.md).
+### Scoring methodology
+
+| Category | Weight | Drivers |
+|---|---|---|
+| **Trend** | 40% | Price vs SMA200/SMA50 · SMA50 vs SMA200 · EMA20/50/200 stack · ADX trend confirmation |
+| **Momentum** | 25% | RSI · MACD · Stochastic RSI |
+| **Volume** | 15% | OBV trend (accumulation/distribution) · volume-spike confirmation |
+| **Volatility** | 10% | ATR % of price · Bollinger %B position |
+| **Sentiment** | 10% | FinBERT / VADER news sentiment |
+
+Each category scores 0–100 from graded sub-signals; the final score is the
+weighted blend, with weights **renormalised** over categories that have enough
+data. Rating bands: `0–30` Strong Sell · `31–45` Sell · `46–55` Hold ·
+`56–70` Buy · `71–100` Strong Buy.
+
+### Why results used to disagree with TradingView
+
+The previous engine used `pandas-ta` defaults, which mix smoothing conventions.
+TradingView uses **Wilder's RMA** for RSI/ATR/ADX, **EMA** for MACD, and
+**population standard deviation** for Bollinger Bands. The indicators are now
+implemented natively with exactly those conventions, with no look-ahead bias
+(the still-forming daily bar is dropped) and timezone-normalised data — which
+removes the spurious disagreements while keeping a richer, explainable
+methodology (we improve on TradingView rather than copy it).
 
 ---
 
-## 📁 מבנה תיקיות (Project Structure)
-
-```
-ai-investment-advisor/
-├── app.py                     # אפליקציית Streamlit + תזמור הצינור (pipeline)
-├── config.py                  # הגדרות וקריאת מפתחות מהסביבה
-├── requirements.txt           # תלויות
-├── .env.example               # תבנית משתני סביבה
-├── .gitignore
-├── README.md
-├── src/
-│   ├── data/
-│   │   ├── market_data.py      # Yahoo Finance — מחיר + היסטוריה
-│   │   └── news_data.py        # NewsAPI — חדשות אחרונות
-│   ├── analysis/
-│   │   ├── technical.py        # RSI, MACD, SMA50, SMA200 + ציון משוקלל
-│   │   └── sentiment.py        # ניתוח סנטימנט (FinBERT / VADER)
-│   ├── ai/
-│   │   └── advisor.py          # LLM — המלצה מנומקת + מנוע גיבוי
-│   └── ui/
-│       └── components.py       # בניית הגרף ורכיבי תצוגה
-└── docs/
-    ├── architecture.md         # תיעוד ארכיטקטורה
-    ├── presentation_script.md  # תסריט מצגת 5 דקות
-    └── project_summary.pdf     # מסמך מסכם (עד 5 עמודים)
-```
-
----
-
-## 🚀 התקנה והרצה מקומית (Local Setup)
-
-דרישה מוקדמת: **Python 3.10+**
+## Setup
 
 ```bash
-# 1. שכפול / כניסה לתיקיית הפרויקט
-cd ai-investment-advisor
+# 1. Clone
+git clone https://github.com/Dania2703/Ai-Investment-Advisor.git
+cd Ai-Investment-Advisor
 
-# 2. יצירת סביבה וירטואלית
-python -m venv .venv
-source .venv/bin/activate        # ב-Windows: .venv\Scripts\activate
-
-# 3. התקנת תלויות
+# 2. Install
 pip install -r requirements.txt
 
-# 4. הגדרת מפתחות
+# 3. Configure
 cp .env.example .env
-#    ערכו את .env והכניסו את OPENAI_API_KEY ו-NEWS_API_KEY שלכם
+# Edit .env and add your API keys
 
-# 5. הרצה
+# 4. Run
 streamlit run app.py
 ```
 
-האפליקציה תיפתח בדפדפן בכתובת `http://localhost:8501`.
+# 1. Activate the venv
+.\.venv\Scripts\Activate.ps1
 
-### 🔑 מפתחות API
+# 2. Launch the app
+.venv/Scripts/python.exe -m pip install -r requirements.txt
+source .venv/Scripts/activate
 
-| משתנה | היכן משיגים | חובה? |
-|-------|-------------|-------|
-| `OPENAI_API_KEY` | https://platform.openai.com | אופציונלי — ללא מפתח, פועל מנוע גיבוי מבוסס-חוקים |
-| `NEWS_API_KEY` | https://newsapi.org (חינמי) | אופציונלי — ללא מפתח, פאנל החדשות פשוט מדלג |
 
-> **תכנון עמיד:** המערכת רצה מקצה-לקצה גם ללא אף מפתח, כך שניתן להריץ ולבדוק
-> את הפרויקט מיד. עם מפתחות — מתקבלות המלצות LLM אמיתיות וחדשות חיות.
+## API Keys
 
----
+| Key | Source | Cost |
+|---|---|---|
+| `FINNHUB_API_KEY` | [finnhub.io](https://finnhub.io) | Free (60 calls/min) |
+| `OPENAI_API_KEY` | [platform.openai.com](https://platform.openai.com) | Paid (fallback: deterministic rule-based narrator) |
+| `GROQ_API_KEY` | [console.groq.com](https://console.groq.com) | Free (chatbot) |
+| `GEMINI_API_KEY` | [aistudio.google.com](https://aistudio.google.com) | Free (chatbot fallback) |
 
-## ☁️ פריסה (Deployment)
-
-הסבר מלא נמצא בהמשך הקובץ — ראו סעיף [פריסה ל-Hugging Face / Render](#-פריסה-לhugging-face-spaces-או-render).
-
----
-
-## 🧠 איך זה עובד — צינור הנתונים (Pipeline)
-
-1. המשתמש מזין **Ticker** (לדוגמה `AAPL`).
-2. `market_data` מושך מחיר נוכחי + היסטוריה של שנה מ-Yahoo Finance.
-3. `news_data` מושך עד 10 כותרות אחרונות מ-NewsAPI.
-4. `sentiment` מדרג כל כותרת (חיובי/שלילי/נייטרלי) ומחשב ציון מצרפי ב-[-1, +1].
-5. `technical` מחשב RSI(14), MACD(12,26,9), SMA50, SMA200 ו**ציון משוקלל**.
-6. `advisor` (LLM) משקלל את הכל ומפיק **Buy / Hold / Sell** + רמת ביטחון + נימוק.
-7. ה-UI מציג מחיר, גרף, חדשות, סנטימנט, אינדיקטורים, המלצה והסבר מפורט.
+> The rating never depends on an API key — the scoring engine is fully local.
+> API keys only affect the *narration* (OpenAI) and the chatbot (Groq/Gemini).
 
 ---
 
-## ☁️ פריסה ל-Hugging Face Spaces או Render
+## Testing
 
-### אפשרות א׳ — Hugging Face Spaces (מומלץ, חינמי)
+```bash
+# Offline unit tests (indicator maths, no-look-ahead, scoring engine)
+pytest
 
-1. צרו חשבון ב-https://huggingface.co וצרו **Space** חדש מסוג **Streamlit**.
-2. העלו את כל קבצי הפרויקט (או חברו את ה-Space ל-Git repo).
-3. ודאו ש-`requirements.txt` נמצא בשורש — HF יתקין אוטומטית.
-4. ב-**Settings → Variables and secrets** הוסיפו:
-   - `OPENAI_API_KEY`
-   - `NEWS_API_KEY`
-5. ה-Space יבנה ויריץ את `app.py` אוטומטית. זהו.
+# Live validation against AAPL / MSFT / NVDA / AMZN / TSLA (needs network);
+# prints each indicator + rating for eyeballing against TradingView
+pytest -s -m network
+```
 
-> טיפ: בטיר החינמי, FinBERT עלול לחרוג מהזיכרון. המערכת תיפול אוטומטית ל-VADER —
-> ניתוח הסנטימנט ימשיך לעבוד ללא תקלה.
-
-### אפשרות ב׳ — Render
-
-1. דחפו את הקוד ל-GitHub.
-2. ב-https://render.com צרו **New → Web Service** וחברו את ה-repo.
-3. הגדרות:
-   - **Build Command:** `pip install -r requirements.txt`
-   - **Start Command:**
-     `streamlit run app.py --server.port $PORT --server.address 0.0.0.0`
-4. תחת **Environment** הוסיפו את `OPENAI_API_KEY` ו-`NEWS_API_KEY`.
-5. **Create Web Service** — Render יבנה ויפרוס.
+`tests/test_indicators.py` verifies each indicator against closed-form values,
+checks bounds/NaN warm-up/alignment, and proves there is **no look-ahead bias**
+(truncating future bars never changes past values). `tests/test_scoring.py`
+verifies rating thresholds, directionality, weight renormalisation and
+determinism. `tests/test_validation.py` runs sanity checks on real tickers.
 
 ---
 
-## 🔭 פיתוח עתידי ומגבלות
+## Deploy to Hugging Face Spaces
 
-### רעיונות לפיתוח עתידי
-- תיק השקעות מרובה-מניות עם מתאם וסיכון (Sharpe, beta).
-- התראות אוטומטיות (מייל / Telegram) על שינוי המלצה.
-- Backtesting — בדיקת ביצועי האסטרטגיה היסטורית.
-- מקורות נוספים: דוחות כספיים, נתוני מאקרו, סנטימנט מ-Reddit/X.
-- שמירת היסטוריית ניתוחים במסד נתונים (SQLite / Postgres).
-- תמיכה בעברית מלאה ב-UI ובנימוקי ה-LLM.
-
-### מגבלות המערכת
-- **לא ייעוץ פיננסי** — כלי חינוכי בלבד.
-- נתוני Yahoo Finance עלולים להתעכב ואינם מובטחים בדיוק "live" מלא.
-- האיכות תלויה בכיסוי החדשות של NewsAPI (אנגלית בעיקר).
-- FinBERT דורש זיכרון; בסביבות מוגבלות עוברים ל-VADER (פחות מדויק).
-- ה-LLM עלול לשגות; ההמלצה אינדיקטיבית ולא דטרמיניסטית.
-- האינדיקטורים מסתכלים אחורה (lagging) ולא חוזים שינויי מגמה חדים.
+1. Create a Space at [huggingface.co](https://huggingface.co) → **Docker** SDK
+2. Push all project files (or connect the GitHub repo)
+3. Add API keys under **Settings → Secrets**
+4. The Space will build and deploy automatically
 
 ---
 
-## 📜 רישיון ואחריות
+## Disclaimer
 
-פרויקט אקדמי לצורכי לימוד. אין להסתמך על הפלט לקבלת החלטות השקעה אמיתיות.
+This is an educational tool, not financial advice. Always do your own research and consult a licensed professional before investing.
 
 ---
 
-## 👤 קרדיט
-
-נבנה כפרויקט גמר לקורס *בינה מלאכותית וחדשנות בשוק ההון* — מסלול 3.
+Built as a final project for *AI & Innovation in Capital Markets* course — Track 3.

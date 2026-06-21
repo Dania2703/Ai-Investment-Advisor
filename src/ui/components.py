@@ -1,117 +1,122 @@
 """
 src/ui/components.py
 ====================
-Reusable presentation helpers for the Streamlit front-end.
+UI components for the Streamlit front-end.
 
-Keeping the Plotly chart construction and other view logic here keeps
-`app.py` focused on layout and orchestration.
+Uses TradingView Lightweight Charts for price visualization.
 """
 
 from __future__ import annotations
 
 import pandas as pd
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-
-from src.analysis.technical import compute_macd, compute_rsi, compute_sma
-from config import settings
-
-
-# Colour palette (navy / teal / gold — consistent across the project).
-COLORS = {
-    "up": "#0E9F6E",
-    "down": "#E02424",
-    "price": "#1A2A4F",
-    "sma50": "#0694A2",
-    "sma200": "#C99700",
-    "macd": "#1A2A4F",
-    "signal": "#C99700",
-}
+from streamlit_lightweight_charts import renderLightweightCharts
 
 ACTION_COLORS = {"Buy": "#0E9F6E", "Hold": "#C99700", "Sell": "#E02424"}
 
+# Colour scale for the 5-way rating produced by the scoring engine.
+RATING_COLORS = {
+    "Strong Buy": "#0B7A4B",
+    "Buy": "#0E9F6E",
+    "Hold": "#C99700",
+    "Sell": "#E0533C",
+    "Strong Sell": "#E02424",
+}
 
-def build_price_chart(history: pd.DataFrame, ticker: str) -> go.Figure:
-    """
-    Build a 3-row figure: candlesticks + moving averages, MACD, and RSI.
 
-    The shared x-axis lets the user line up price action with momentum and
-    overbought/oversold conditions at a glance.
+def build_tv_chart(history: pd.DataFrame, ticker: str) -> None:
     """
+    Render a TradingView Lightweight candlestick chart with MA overlays.
+    """
+    candle_data = []
+    for idx, row in history.iterrows():
+        ts = int(idx.timestamp())
+        candle_data.append({
+            "time": ts,
+            "open": float(row["Open"]),
+            "high": float(row["High"]),
+            "low": float(row["Low"]),
+            "close": float(row["Close"]),
+        })
+
     close = history["Close"].astype(float)
-    sma50 = compute_sma(close, settings.sma_short)
-    sma200 = compute_sma(close, settings.sma_long)
-    macd_df = compute_macd(close)
-    rsi = compute_rsi(close)
+    sma50 = close.rolling(50).mean()
+    sma200 = close.rolling(200).mean()
+    ema20 = close.ewm(span=20, adjust=False).mean()
 
-    fig = make_subplots(
-        rows=3,
-        cols=1,
-        shared_xaxes=True,
-        vertical_spacing=0.04,
-        row_heights=[0.6, 0.2, 0.2],
-        subplot_titles=(f"{ticker} Price & Moving Averages", "MACD", "RSI (14)"),
-    )
+    sma50_data = []
+    for idx, val in sma50.dropna().items():
+        sma50_data.append({"time": int(idx.timestamp()), "value": float(val)})
 
-    # ---- Row 1: candlesticks + SMAs -------------------------------------
-    fig.add_trace(
-        go.Candlestick(
-            x=history.index,
-            open=history["Open"],
-            high=history["High"],
-            low=history["Low"],
-            close=history["Close"],
-            name="Price",
-            increasing_line_color=COLORS["up"],
-            decreasing_line_color=COLORS["down"],
-        ),
-        row=1,
-        col=1,
-    )
-    fig.add_trace(
-        go.Scatter(x=history.index, y=sma50, name="SMA 50",
-                   line=dict(color=COLORS["sma50"], width=1.5)),
-        row=1, col=1,
-    )
-    fig.add_trace(
-        go.Scatter(x=history.index, y=sma200, name="SMA 200",
-                   line=dict(color=COLORS["sma200"], width=1.5)),
-        row=1, col=1,
-    )
+    sma200_data = []
+    for idx, val in sma200.dropna().items():
+        sma200_data.append({"time": int(idx.timestamp()), "value": float(val)})
 
-    # ---- Row 2: MACD -----------------------------------------------------
-    fig.add_trace(
-        go.Bar(x=history.index, y=macd_df["hist"], name="Histogram",
-               marker_color="rgba(26,42,79,0.35)"),
-        row=2, col=1,
-    )
-    fig.add_trace(
-        go.Scatter(x=history.index, y=macd_df["macd"], name="MACD",
-                   line=dict(color=COLORS["macd"], width=1.2)),
-        row=2, col=1,
-    )
-    fig.add_trace(
-        go.Scatter(x=history.index, y=macd_df["signal"], name="Signal",
-                   line=dict(color=COLORS["signal"], width=1.2)),
-        row=2, col=1,
-    )
+    ema20_data = []
+    for idx, val in ema20.dropna().items():
+        ema20_data.append({"time": int(idx.timestamp()), "value": float(val)})
 
-    # ---- Row 3: RSI with 30/70 guide lines ------------------------------
-    fig.add_trace(
-        go.Scatter(x=history.index, y=rsi, name="RSI",
-                   line=dict(color=COLORS["price"], width=1.2)),
-        row=3, col=1,
-    )
-    fig.add_hline(y=70, line_dash="dot", line_color=COLORS["down"], row=3, col=1)
-    fig.add_hline(y=30, line_dash="dot", line_color=COLORS["up"], row=3, col=1)
+    # Colours follow the active light/dark theme.
+    from src.ui.theme import active_theme, chart_colors
+    c = chart_colors()
 
-    fig.update_layout(
-        height=720,
-        showlegend=True,
-        xaxis_rangeslider_visible=False,
-        margin=dict(l=10, r=10, t=40, b=10),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-        template="plotly_white",
+    chart_options = {
+        "height": 500,
+        "layout": {
+            "textColor": c["text"],
+            "background": {"type": "solid", "color": c["bg"]},
+            "fontFamily": "JetBrains Mono, monospace",
+        },
+        "grid": {
+            "vertLines": {"color": c["grid"]},
+            "horzLines": {"color": c["grid"]},
+        },
+        "crosshair": {"mode": 0},
+        "rightPriceScale": {"borderColor": c["border"]},
+        "timeScale": {
+            "borderColor": c["border"],
+            "timeVisible": False,
+        },
+        "watermark": {
+            "visible": True,
+            "fontSize": 56,
+            "horzAlign": "center",
+            "vertAlign": "center",
+            "color": c["watermark"],
+            "text": ticker,
+        },
+    }
+
+    series = [
+        {
+            "type": "Candlestick",
+            "data": candle_data,
+            "options": {
+                "upColor": c["up"],
+                "downColor": c["down"],
+                "borderVisible": False,
+                "wickUpColor": c["up"],
+                "wickDownColor": c["down"],
+            },
+        },
+        {
+            "type": "Line",
+            "data": sma50_data,
+            "options": {"color": c["sma50"], "lineWidth": 2, "title": "SMA 50"},
+        },
+        {
+            "type": "Line",
+            "data": sma200_data,
+            "options": {"color": c["sma200"], "lineWidth": 2, "title": "SMA 200"},
+        },
+        {
+            "type": "Line",
+            "data": ema20_data,
+            "options": {"color": c["ema20"], "lineWidth": 1, "title": "EMA 20"},
+        },
+    ]
+
+    # Re-key the chart per theme so Lightweight Charts re-renders on toggle.
+    renderLightweightCharts(
+        [{"chart": chart_options, "series": series}],
+        key=f"tv_chart_{ticker}_{active_theme()}",
     )
-    fig.update_yaxes(range=[0, 100], row=3, col=1)
-    return fig

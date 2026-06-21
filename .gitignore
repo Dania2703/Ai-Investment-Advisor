@@ -27,3 +27,6 @@ nltk_data/
 
 # Logs
 *.log
+
+# Database
+data/*.db

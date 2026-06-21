@@ -4,12 +4,8 @@ src/ai/chatbot.py
 Conversational AI assistant for the stock-analysis dashboard.
 
 Engine priority:
-  1. Groq  (free Llama 3.3 70B — 30 RPM / 14,400 RPD)
-  2. Gemini (free tier — if key is configured and quota available)
-
-The chatbot receives the full analysis context (quote, technicals,
-sentiment, recommendation) so every answer is grounded in the live
-data the user is looking at — not generic finance knowledge.
+  1. Groq  (free Llama 3.3 70B)
+  2. Gemini (free tier fallback)
 """
 
 from __future__ import annotations
@@ -33,19 +29,22 @@ CURRENT ANALYSIS CONTEXT
 """
 
 
+def _v(value, digits: int) -> str:
+    """Format an optional number, falling back to 'N/A'."""
+    return f"{value:,.{digits}f}" if value is not None else "N/A"
+
+
 def build_context(quote, tech, sentiment, rec, articles) -> str:
-    """Build a compact text block from the current analysis results."""
     headlines = "\n".join(
         f"  - {a.title}" for a in (articles or [])[:8]
     ) or "  (no news available)"
 
+    sentiment_details = "  (no per-article scores available)"
     if sentiment.details:
         sentiment_details = "\n".join(
             f"  - [{d.label} {d.score:+.2f}] {d.title}"
             for d in sentiment.details[:8]
         )
-    else:
-        sentiment_details = "  (no per-article scores available)"
 
     return f"""\
 COMPANY
@@ -57,14 +56,18 @@ COMPANY
   Daily change:   {quote.change:+.2f} ({quote.change_pct:+.2f}%)
   Market cap:     {f'{quote.market_cap/1e9:,.1f} B' if quote.market_cap else 'N/A'}
 
-TECHNICAL INDICATORS
-  RSI(14):        {f'{tech.rsi:.1f}' if tech.rsi is not None else 'N/A'} -> {tech.rsi_signal}
-  MACD:           {f'{tech.macd:.3f}' if tech.macd is not None else 'N/A'} -> {tech.macd_trend}
-  MACD histogram: {f'{tech.macd_hist:.3f}' if tech.macd_hist is not None else 'N/A'}
-  SMA 50:         {f'{tech.sma_50:,.2f}' if tech.sma_50 is not None else 'N/A'}
-  SMA 200:        {f'{tech.sma_200:,.2f}' if tech.sma_200 is not None else 'N/A'}
-  MA trend:       {tech.ma_trend}
-  Composite:      {tech.composite_score:+.2f} (-1 bearish .. +1 bullish)
+TECHNICAL INDICATORS (native, TradingView-aligned)
+  RSI(14):        {_v(tech.rsi, 1)} -> {tech.rsi_signal}
+  MACD:           {_v(tech.macd, 3)} -> {tech.macd_trend} (hist {_v(tech.macd_hist, 3)})
+  StochRSI %K/%D: {_v(tech.stoch_rsi_k, 0)} / {_v(tech.stoch_rsi_d, 0)}
+  SMA 50 / 200:   {_v(tech.sma_50, 2)} / {_v(tech.sma_200, 2)}  ({tech.ma_trend})
+  EMA 20/50/200:  {_v(tech.ema_20, 2)} / {_v(tech.ema_50, 2)} / {_v(tech.ema_200, 2)}
+  ADX(14):        {_v(tech.adx, 1)} (+DI {_v(tech.plus_di, 1)} / -DI {_v(tech.minus_di, 1)})
+  Bollinger %B:   {_v(tech.bb_percent_b, 2)}  (upper {_v(tech.bb_upper, 2)} / lower {_v(tech.bb_lower, 2)})
+  ATR(14):        {_v(tech.atr, 2)} ({_v(tech.atr_pct, 2)}% of price)
+  OBV trend:      {'rising (accumulation)' if (tech.obv or 0) > (tech.obv_ema or 0) else 'falling (distribution)'}
+  Volume vs 20d:  {_v(tech.volume_ratio, 2)}x
+  Support/Resist: {_v(tech.support, 2)} / {_v(tech.resistance, 2)}
 
 NEWS SENTIMENT (engine: {sentiment.engine})
   Average score:  {sentiment.average_score:+.3f} (-1..+1)
@@ -74,29 +77,22 @@ NEWS SENTIMENT (engine: {sentiment.engine})
 PER-ARTICLE SENTIMENT
 {sentiment_details}
 
-RECOMMENDATION
-  Action:         {rec.action}
+RECOMMENDATION (decided by the deterministic scoring engine)
+  Rating:         {rec.rating}
+  Final score:    {rec.final_score:.1f} / 100
   Confidence:     {rec.confidence}%
   Engine:         {rec.engine}
-  Rationale:      {rec.rationale}
+  Summary:        {rec.rationale}
 
 RECENT HEADLINES
 {headlines}
 """
 
 
-# --------------------------------------------------------------------------- #
-# Groq (Llama) — primary free engine
-# --------------------------------------------------------------------------- #
-def _chat_groq(
-    system: str,
-    user_message: str,
-    history: List[Tuple[str, str]],
-) -> str:
+def _chat_groq(system: str, user_message: str, history: List[Tuple[str, str]]) -> tuple[str, str]:
     from groq import Groq
 
     client = Groq(api_key=settings.groq_api_key)
-
     messages = [{"role": "system", "content": system}]
     for role, text in history:
         messages.append({"role": role, "content": text})
@@ -109,22 +105,13 @@ def _chat_groq(
         max_tokens=1024,
     )
     engine = f"Groq ({settings.groq_model})"
-    print(f"[AI AUDIT] Chatbot called. Engine: {engine}")
     return response.choices[0].message.content, engine
 
 
-# --------------------------------------------------------------------------- #
-# Gemini — fallback free engine
-# --------------------------------------------------------------------------- #
-def _chat_gemini(
-    system: str,
-    user_message: str,
-    history: List[Tuple[str, str]],
-) -> str:
+def _chat_gemini(system: str, user_message: str, history: List[Tuple[str, str]]) -> tuple[str, str]:
     from google import genai
 
     client = genai.Client(api_key=settings.gemini_api_key)
-
     contents = [
         {"role": "user", "parts": [{"text": system + "\n\n(System context loaded.)"}]},
         {"role": "model", "parts": [{"text": "Understood. I have the full analysis context. How can I help?"}]},
@@ -139,25 +126,15 @@ def _chat_gemini(
         contents=contents,
     )
     engine = f"Gemini ({settings.gemini_model})"
-    print(f"[AI AUDIT] Chatbot called. Engine: {engine}")
     return response.text, engine
 
 
-# --------------------------------------------------------------------------- #
-# Public API
-# --------------------------------------------------------------------------- #
 def chat(
     user_message: str,
     context: str,
     history: List[Tuple[str, str]],
 ) -> tuple[str, str]:
-    """
-    Send a message using the best available free engine.
-
-    Returns
-    -------
-    tuple of (response_text, engine_name)
-    """
+    """Send a message using the best available free engine."""
     system = SYSTEM_INSTRUCTION.format(context=context)
 
     if settings.groq_enabled:
@@ -173,6 +150,5 @@ def chat(
             print(f"[AI AUDIT] Gemini failed: {exc}")
 
     raise RuntimeError(
-        "No chatbot engine available. Add a GROQ_API_KEY (free at https://console.groq.com) "
-        "or GEMINI_API_KEY to your .env file."
+        "No chatbot engine available. Add a GROQ_API_KEY or GEMINI_API_KEY to your .env file."
     )

@@ -1,19 +1,23 @@
 # ---- Core web app -----------------------------------------------------------
 streamlit==1.39.0
 
-# ---- Market & news data -----------------------------------------------------
-yfinance==0.2.44
+# ---- Market & news data (Finnhub + yfinance for candles) -------------------
 requests==2.32.3
+yfinance>=0.2.44
 
 # ---- Data & technical analysis ----------------------------------------------
+# Indicators are implemented natively (NumPy/pandas) in src/analysis/indicators.py
+# with TradingView-aligned conventions (Wilder smoothing, population stdev).
+# No pandas-ta dependency — removes its numpy.NaN import fragility and makes
+# every indicator auditable and unit-tested.
 pandas==2.2.3
 numpy==1.26.4
 
-# ---- Charts -----------------------------------------------------------------
-plotly==5.24.1
+# ---- Charts (TradingView Lightweight Charts) --------------------------------
+streamlit-lightweight-charts>=0.7.20
 
-# ---- AI: LLM recommendation -------------------------------------------------
-openai==1.51.0
+# ---- AI: LLM recommendation (GPT-4.1) --------------------------------------
+openai>=1.51.0
 
 # ---- AI: Chatbot (free tier — Groq primary, Gemini fallback) ----------------
 groq>=1.0.0
@@ -24,5 +28,15 @@ transformers==4.44.2
 torch==2.4.1
 nltk==3.9.1
 
+# ---- Auth & user database (SQLAlchemy; Postgres in prod, SQLite for dev) ----
+# Password hashing uses the Python stdlib (PBKDF2) — no extra crypto dependency.
+SQLAlchemy>=2.0.30
+# Postgres driver — only needed when DATABASE_URL points at Postgres. Harmless
+# to install everywhere; SQLite needs no driver.
+psycopg2-binary>=2.9.9
+
 # ---- Configuration ----------------------------------------------------------
 python-dotenv==1.0.1
+
+# ---- Tests (dev) ------------------------------------------------------------
+pytest>=8.0.0
