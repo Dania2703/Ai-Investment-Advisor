@@ -77,37 +77,38 @@ story.append(section_rule())
 # 1. Overview
 story.append(p("1. תקציר הפרויקט", H2))
 story.append(p(
-    "האפליקציה מקבלת סימול מניה (Ticker) ומבצעת בלחיצת כפתור צינור ניתוח שלם: "
-    "משיכת נתוני שוק וחדשות בזמן אמת, ניתוח סנטימנט באמצעות מודל AI, חישוב "
-    "אינדיקטורים טכניים, והפעלת מודל שפה גדול (LLM) שמפיק המלצת השקעה מנומקת — "
-    "קנייה, החזקה או מכירה (Buy / Hold / Sell). המערכת מאחדת ניתוח טכני כמותי עם "
-    "הקשר חדשותי איכותני תחת שכבת בינה מלאכותית אחת המסבירה את ההחלטה בשפה פשוטה. "
-    "הכלי חינוכי בלבד ואינו מהווה ייעוץ פיננסי."))
+    "אפליקציית Streamlit מלאה עם הרשמה והתחברות (SQLAlchemy + PBKDF2). לאחר "
+    "כניסה, המשתמש מזין סימול מניה (Ticker) ומפעיל בלחיצת כפתור צינור ניתוח "
+    "שלם: משיכת נתוני שוק וחדשות בזמן אמת, חישוב אינדיקטורים טכניים native "
+    "(תואמי-TradingView), הפעלת מנוע ניקוד דטרמיניסטי (0–100), ונרטיב הסבר "
+    "מ-GPT-4.1 שמנסח את הציון ואינו קובע אותו. כל ניתוח נשמר להיסטוריית "
+    "המשתמש. הכלי חינוכי בלבד ואינו מהווה ייעוץ פיננסי."))
 
 # 2. Goals
 story.append(p("2. מטרות ודרישות", H2))
-story.append(bullet("Frontend ב-Streamlit ו-Backend ב-Python."))
-story.append(bullet("חיבור ל-Yahoo Finance לנתוני מניות, ול-NewsAPI לחדשות."))
-story.append(bullet("ניתוח סנטימנט של חדשות באמצעות מודל AI (FinBERT)."))
-story.append(bullet("חישוב אינדיקטורים: RSI, MACD, ממוצע נע 50 וממוצע נע 200."))
-story.append(bullet("מודל LLM המפיק המלצה מנומקת על בסיס כל הנתונים."))
+story.append(bullet("Frontend ב-Streamlit (רב-עמודי: נחיתה/הרשמה/דשבורד) ו-Backend ב-Python."))
+story.append(bullet("שכבת אימות משתמשים (SQLAlchemy) עם היסטוריית ניתוחים שמורה."))
+story.append(bullet("חיבור ל-Finnhub למחיר חי וחדשות, ול-yfinance להיסטוריית OHLCV."))
+story.append(bullet("מנוע ניקוד דטרמיניסטי ושקוף המשלב אינדיקטורים טכניים וסנטימנט AI (FinBERT)."))
+story.append(bullet("GPT-4.1 מנסח נרטיב הסבר על בסיס הציון; צ'אטבוט צף מקורקע בנתונים חיים."))
 
 # 3. Architecture
 story.append(p("3. ארכיטקטורה", H2))
 story.append(p(
-    "המערכת בנויה בתבנית שכבות עם הפרדת אחריות ברורה. שכבת התצוגה (Streamlit) "
-    "מקבלת את הסימול ומתזמרת ארבעה מודולים: שכבת נתונים המושכת מחיר והיסטוריה "
-    "מ-Yahoo Finance וחדשות מ-NewsAPI; שכבת ניתוח המחשבת אינדיקטורים טכניים "
-    "ומדרגת סנטימנט; ושכבת AI שבה ה-LLM משקלל את כל הנתונים להמלצה סופית. כל "
-    "מודול עצמאי וניתן לבדיקה בנפרד."))
+    "המערכת בנויה בתבנית שכבות: אימות (Auth) → נתונים (Data) → ניתוח "
+    "(Analysis) → מנוע ניקוד (Scoring) → AI (נרטיב + צ'אטבוט) → תצוגה "
+    "(Streamlit). העיקרון המנחה: מנוע הניקוד הדטרמיניסטי מחליט, וה-LLM "
+    "רק מסביר — כך שאותם נתונים תמיד מניבים אותה המלצה, וה-AI לא יכול "
+    "להטות את הדירוג עצמו."))
 
 # Architecture flow table (visual, RTL order)
 flow = [
-    [p("פלט: מחיר · גרף · חדשות · סנטימנט · אינדיקטורים · המלצה + נימוק", CELLB)],
-    [p("שכבת AI — LLM (OpenAI) או מנוע גיבוי מבוסס-חוקים · פלט: Buy / Hold / Sell", CELL)],
-    [p("שכבת ניתוח — אינדיקטורים טכניים (RSI/MACD/SMA) + סנטימנט (FinBERT/VADER)", CELL)],
-    [p("שכבת נתונים — Yahoo Finance (מחיר/היסטוריה) + NewsAPI (חדשות)", CELL)],
-    [p("שכבת תצוגה — Streamlit · קלט Ticker", CELL)],
+    [p("פלט: דשבורד + נרטיב GPT + צ'אטבוט מקורקע + שמירה להיסטוריה", CELLB)],
+    [p("שכבת AI — GPT-4.1 מנסח את הציון (אינו קובע אותו)", CELL)],
+    [p("מנוע ניקוד — Trend 35% · Momentum 25% · Volume 15% · Volatility 10% · Sentiment 10% · Risk 5%", CELL)],
+    [p("שכבת ניתוח — אינדיקטורים native (RSI/MACD/EMA/Bollinger/ADX/ATR/OBV) + סנטימנט (FinBERT)", CELL)],
+    [p("שכבת נתונים — Finnhub (מחיר/חדשות) + yfinance (היסטוריה)", CELL)],
+    [p("שכבת אימות — הרשמה/התחברות (SQLAlchemy) · טוקן session חתום", CELL)],
 ]
 flow_tbl = Table(flow, colWidths=[16 * cm])
 flow_tbl.setStyle(TableStyle([
@@ -130,13 +131,17 @@ story.append(flow_tbl)
 story.append(p("4. מחסנית טכנולוגית", H2))
 stack_rows = [
     [p("טכנולוגיה", CELLB), p("רכיב", CELLB)],
-    [p("Streamlit", CELL), p("ממשק משתמש (Frontend)", CELL)],
+    [p("Streamlit (רב-עמודי)", CELL), p("ממשק משתמש (Frontend)", CELL)],
     [p("Python · pandas · numpy", CELL), p("Backend וחישובים", CELL)],
-    [p("yfinance (Yahoo Finance)", CELL), p("נתוני שוק בזמן אמת", CELL)],
-    [p("NewsAPI", CELL), p("חדשות פיננסיות", CELL)],
+    [p("SQLAlchemy · PBKDF2", CELL), p("אימות משתמשים והיסטוריה", CELL)],
+    [p("SQLite / Postgres", CELL), p("בסיס נתונים (DATABASE_URL)", CELL)],
+    [p("Finnhub", CELL), p("מחיר חי וחדשות פיננסיות", CELL)],
+    [p("yfinance", CELL), p("היסטוריית OHLCV (שנתיים)", CELL)],
     [p("FinBERT / VADER", CELL), p("ניתוח סנטימנט (AI)", CELL)],
-    [p("OpenAI LLM", CELL), p("המלצת השקעה מנומקת", CELL)],
-    [p("Plotly", CELL), p("גרפים אינטראקטיביים", CELL)],
+    [p("OpenAI GPT-4.1", CELL), p("נרטיב הסבר להמלצה", CELL)],
+    [p("Groq (Llama 3.3) / Gemini", CELL), p("צ'אטבוט צף מקורקע", CELL)],
+    [p("TradingView Lightweight Charts", CELL), p("גרפים אינטראקטיביים", CELL)],
+    [p("Docker · Hugging Face Spaces", CELL), p("פריסה", CELL)],
 ]
 stack_tbl = Table(stack_rows, colWidths=[9 * cm, 7 * cm])
 stack_tbl.setStyle(TableStyle([
@@ -152,42 +157,68 @@ story.append(stack_tbl)
 
 # 5. Pipeline / how it works
 story.append(p("5. אופן הפעולה — צינור הנתונים", H2))
-story.append(bullet("המשתמש מזין סימול מניה ולוחץ Analyze."))
-story.append(bullet("המערכת מושכת מחיר נוכחי והיסטוריה של שנה מ-Yahoo Finance."))
-story.append(bullet("נמשכות עד 10 כותרות חדשות אחרונות מ-NewsAPI."))
-story.append(bullet("מודול הסנטימנט מדרג כל כותרת ומחשב ציון מצרפי בטווח [1-, 1+]."))
-story.append(bullet("מודול טכני מחשב RSI, MACD, SMA50, SMA200 וציון משוקלל אחיד."))
-story.append(bullet("ה-LLM משקלל את כל הנתונים ומפיק Buy / Hold / Sell עם רמת ביטחון ונימוק."))
+story.append(bullet("המשתמש מתחבר/נרשם, מזין סימול מניה ולוחץ Analyze."))
+story.append(bullet("מחיר חי מ-Finnhub + היסטוריית OHLCV לשנתיים מ-yfinance; עד 10 כותרות חדשות מ-Finnhub."))
+story.append(bullet("מודול האינדיקטורים מחשב RSI/MACD/EMA/Bollinger/StochRSI/ADX/ATR/OBV; הסנטימנט מדורג ב-FinBERT."))
+story.append(bullet("מודול correlation.py נועד לנטרל כפילויות בין אינדיקטורי מגמה מתואמים — טרם מחובר בפועל, ראו סעיף 6.1."))
+story.append(bullet("scoring.py מפיק ציון 0–100 ורמת ביטחון (מרחק מ-50 + הסכמה בין קטגוריות)."))
+story.append(bullet("GPT-4.1 מנסח רציונל בשפה טבעית על בסיס הציון; התוצאה נשמרת להיסטוריית המשתמש."))
 
-# 6. Technical indicators explanation
-story.append(p("6. האינדיקטורים הטכניים", H2))
+# 6. Technical indicators & the scoring engine
+story.append(p("6. האינדיקטורים ומנוע הניקוד", H2))
 story.append(p(
-    "המימוש מפורש ב-pandas (ולא ספרייה אטומה) לשם שקיפות. RSI(14) מזהה קנייתֵר/"
-    "מכירת יתר; MACD מודד מומנטום לפי הפרש ממוצעים מעריכיים; חצייה של ממוצע נע 50 "
-    "מעל 200 מהווה 'צלב זהב' שורי, ומתחתיו 'צלב מוות' דובי. מכל אלה מחושב ציון "
-    "משוקלל אחד בטווח [1-, 1+] המשמש עוגן כמותי להחלטת ה-LLM."))
+    "כל אינדיקטור ממומש native ב-NumPy/pandas (לא ספריית pandas-ta), בקונבנציות "
+    "התואמות ל-TradingView: Wilder's RMA ל-RSI/ATR/ADX, EMA למקד'ד (MACD), "
+    "וסטיית תקן אוכלוסייה לרצועות בולינגר. הציון הסופי הוא שקלול של שש קטגוריות: "
+    "Trend 35% · Momentum 25% · Volume 15% · Volatility 10% · Sentiment 10% "
+    "(כמוגדר ב-config.py), כאשר כל אינדיקטור חושף ערך, אות ומידת תרומה לממוצע "
+    "הקטגוריה — ללא קופסה שחורה. הערה: קיים גם משקל Risk Adjustment (5%) "
+    "ב-config.py, אך אין כרגע קטגוריית סיכון פעילה ב-scoring.py — משקל מוגדר "
+    "שטרם מומש."))
 
-# 7. Robustness / fallback
-story.append(p("7. עמידות ומנועי גיבוי", H2))
+# 6b. The bug-fix story (audit) — reported honestly, including what's NOT wired yet
+story.append(p("6.1 אבחון הטיה שיטתית — docs/AUDIT.md", H2))
 story.append(p(
-    "המערכת תוכננה לרוץ מקצה-לקצה גם ללא מפתחות API: ללא מפתח OpenAI מופעל מנוע "
-    "גיבוי שקוף המשקלל 70% טכני ו-30% סנטימנט; אם FinBERT אינו זמין (זיכרון מוגבל) "
-    "מתבצעת נפילה רכה ל-VADER; וללא מפתח NewsAPI פאנל החדשות פשוט מדולג. כל קריאת "
-    "רשת עטופה בטיפול בשגיאות, וסימול שגוי מציג הודעה ידידותית במקום קריסה."))
+    "בבדיקה מול TradingView נמצא שהמנוע המקורי נטה בעקביות ל-'Strong Buy' גם "
+    "כשאתרים אחרים סימנו Sell/Neutral. הסיבה שאובחנה: שישה-שבעה אינדיקטורי "
+    "מגמה מתואמים (מחיר מול SMA50/200, חציות ממוצעים וכו') נספרים כקולות "
+    "בלתי-תלויים, כך שתופעה אחת — מגמת עלייה — נספרת כמעט פי שש. הפתרון "
+    "שנבנה ונבדק: מודול correlation.py, שמזהה אוטומטית אינדיקטורים מתואמים "
+    "(מעל סף 0.85) ומאחד אותם למשקל cluster משותף. בכנות: המודול קיים "
+    "ועובר בדיקות עצמאיות, אך נכון להגשה זו הוא עדיין לא מיובא או נקרא "
+    "מ-scoring.py — קטגוריית Trend שם עדיין ממצעת את תת-האינדיקטורים "
+    "באופן שווה. מה שכן יושם בפועל: הגבלת משקל המגמה ל-35% (בהשוואה ל-40% "
+    "המקורי), ורכיב הסכמה-בין-קטגוריות שנוסף לחישוב רמת הביטחון. חיבור "
+    "correlation.py לצינור הניקוד הוא פריט הפיתוח הבא בעדיפות הגבוהה ביותר. "
+    "התהליך המלא מתועד ב-docs/AUDIT.md."))
+
+# 7. Robustness / testing
+story.append(p("7. עמידות ובדיקות", H2))
+story.append(p(
+    "מנוע הניקוד אינו תלוי במפתחות API — הוא רץ במלואו גם ללא OpenAI (רק הנרטיב "
+    "מושבת); סנטימנט נופל מ-FinBERT ל-VADER בזיכרון מוגבל; והנר האחרון מסולק "
+    "אוטומטית אם עדיין נסחר, למניעת look-ahead bias. נתון חסר מוצג כ-'Data "
+    "unavailable' ולעולם לא מפוברק. סוויטת pytest (tests/) מוודאת ערכים סגורים "
+    "לכל אינדיקטור, היעדר look-ahead bias, דטרמיניזם של הניקוד, ותקינות מול "
+    "טיקרים אמיתיים."))
 
 # 8. Limitations & future work
 story.append(p("8. מגבלות ופיתוח עתידי", H2))
-story.append(bullet("מגבלות: כלי חינוכי בלבד; אינדיקטורים מסתכלים אחורה; ה-LLM עלול לשגות."))
-story.append(bullet("נתוני Yahoo Finance עלולים להתעכב; כיסוי NewsAPI בעיקר באנגלית."))
-story.append(bullet("עתיד: תיק מרובה-מניות, התראות אוטומטיות, Backtesting היסטורי."))
-story.append(bullet("עתיד: מקורות נוספים (דוחות כספיים, מאקרו, סנטימנט מרשתות חברתיות)."))
+story.append(bullet("correlation.py קיים ובדוק אך לא מחובר בפועל ל-scoring.py — ראו סעיף 6.1."))
+story.append(bullet("קטגוריית Risk Adjustment (5%) מוגדרת ב-config.py אך אינה ממומשת ב-scoring.py."))
+story.append(bullet("רמת הביטחון עדיין תלויה במידה ניכרת במרחק הציון מ-50, לא רק בהסכמה בין קטגוריות."))
+story.append(bullet("כלי חינוכי בלבד; אינדיקטורים מסתכלים אחורה; ציון גבוה אינו מבטיח תשואה."))
+story.append(bullet("כיסוי חדשות באנגלית בעיקר; SQLite כברירת מחדל אינו מתאים לעומס מקבילי גבוה."))
+story.append(bullet("עתיד: חיבור correlation.py לצינור (עדיפות ראשונה), מימוש קטגוריית הסיכון, Backtesting מלא."))
+story.append(bullet("עתיד: תיק מרובה-מניות, התראות אוטומטיות, מקורות נוספים (דוחות SEC, מאקרו-כלכלה)."))
 
 # 9. Deployment
 story.append(p("9. פריסה", H2))
 story.append(p(
-    "ניתן לפרוס בקלות ב-Hugging Face Spaces (סוג Streamlit, העלאת הקבצים והגדרת "
-    "המפתחות כ-Secrets) או ב-Render (Web Service עם פקודת הרצה "
-    "streamlit run app.py והגדרת משתני סביבה). פירוט מלא מופיע ב-README."))
+    "האפליקציה ארוזה ב-Docker (Dockerfile בשורש הפרויקט) ומיועדת לפריסה כ-Space "
+    "מסוג Docker ב-Hugging Face Spaces — קובץ ה-README כולל את ה-frontmatter "
+    "הנדרש (sdk: docker, app_port: 7860). יש להגדיר את מפתחות ה-API ו-DATABASE_URL "
+    "כ-Secrets בהגדרות ה-Space. פירוט מלא מופיע ב-README."))
 
 # Footer disclaimer
 story.append(Spacer(1, 8))
