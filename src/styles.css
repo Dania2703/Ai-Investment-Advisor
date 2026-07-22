@@ -77,26 +77,27 @@ a:hover { text-decoration: underline; }
 }
 
 /* ---- Buttons ------------------------------------------------------------ */
-.stButton > button {
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--surface-2);
-  color: var(--text-2);
-  font-weight: 600;
+.stButton > button, div[data-testid="stBaseButton-secondary"] {
+  border-radius: var(--radius) !important;
+  border: 1px solid var(--border) !important;
+  background: var(--surface-2) !important;
+  color: var(--text-2) !important;
+  font-weight: 600 !important;
   transition: transform .12s ease, border-color .12s ease, color .12s ease;
 }
 .stButton > button:hover {
-  border-color: var(--border-strong);
-  color: var(--text);
+  border-color: var(--border-strong) !important;
+  color: var(--text) !important;
   transform: translateY(-1px);
 }
-.stButton > button[kind="primary"] {
-  background: var(--brand);
-  color: #04222A;
-  border: 1px solid transparent;
+.stButton > button[kind="primary"], div[data-testid="stBaseButton-primary"] {
+  background: var(--brand) !important;
+  color: #04222A !important;
+  border: 1px solid transparent !important;
   box-shadow: 0 6px 20px rgba(34,211,238,0.25);
 }
-.stButton > button[kind="primary"]:hover { filter: brightness(1.06); color: #04222A; }
+.stButton > button[kind="primary"]:hover { filter: brightness(1.06); color: #04222A !important; }
+.stButton > button p, .stButton > button span { color: inherit !important; }
 
 /* ---- Tables ------------------------------------------------------------- */
 div[data-testid="stDataFrame"] { border: 1px solid var(--border); border-radius: var(--radius); }
@@ -121,6 +122,17 @@ div[data-testid="stAlert"] {
 }
 div[data-testid="stAlert"] p, div[data-testid="stAlert"] span,
 div[data-testid="stAlert"] div { color: var(--text) !important; }
+
+/* ---- Popovers (st.popover — account menu, chatbot, etc.) ---------------- */
+div[data-testid="stPopoverBody"] {
+  background: var(--surface) !important;
+  border: 1px solid var(--border-strong) !important;
+  color: var(--text) !important;
+}
+div[data-testid="stPopoverBody"] p, div[data-testid="stPopoverBody"] span,
+div[data-testid="stPopoverBody"] div, div[data-testid="stPopoverBody"] label {
+  color: var(--text) !important;
+}
 
 /* ---- Select / multiselect / dropdown popovers --------------------------- */
 div[data-baseweb="popover"] ul, div[data-baseweb="menu"],
