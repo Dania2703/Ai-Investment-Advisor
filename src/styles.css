@@ -112,6 +112,35 @@ details, div[data-testid="stExpander"] {
   background: var(--surface) !important;
 }
 
+/* ---- Alerts (st.info / st.warning / st.error / st.success) ------------- */
+div[data-testid="stAlert"] {
+  background: var(--surface) !important;
+  border: 1px solid var(--border-strong) !important;
+  border-radius: var(--radius) !important;
+  color: var(--text) !important;
+}
+div[data-testid="stAlert"] p, div[data-testid="stAlert"] span,
+div[data-testid="stAlert"] div { color: var(--text) !important; }
+
+/* ---- Select / multiselect / dropdown popovers --------------------------- */
+div[data-baseweb="popover"] ul, div[data-baseweb="menu"],
+div[data-baseweb="select"] div, div[data-baseweb="select"] input {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+li[role="option"] { background: var(--surface) !important; color: var(--text) !important; }
+li[role="option"]:hover, li[aria-selected="true"] { background: var(--surface-2) !important; }
+
+/* ---- Forms / checkboxes / containers ------------------------------------ */
+div[data-testid="stForm"] {
+  background: transparent !important; border: none !important;
+}
+div[data-testid="stVerticalBlockBorderWrapper"] {
+  background: var(--surface); border-color: var(--border) !important;
+}
+label span, div[data-testid="stCheckbox"] label { color: var(--text) !important; }
+
 /* =========================================================================
    Component primitives
    ========================================================================= */
