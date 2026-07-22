@@ -141,7 +141,7 @@ stack_rows = [
     [p("OpenAI GPT-4.1", CELL), p("נרטיב הסבר להמלצה", CELL)],
     [p("Groq (Llama 3.3) / Gemini", CELL), p("צ'אטבוט צף מקורקע", CELL)],
     [p("TradingView Lightweight Charts", CELL), p("גרפים אינטראקטיביים", CELL)],
-    [p("Docker · Hugging Face Spaces", CELL), p("פריסה", CELL)],
+    [p("Streamlit Community Cloud · Docker", CELL), p("פריסה", CELL)],
 ]
 stack_tbl = Table(stack_rows, colWidths=[9 * cm, 7 * cm])
 stack_tbl.setStyle(TableStyle([
@@ -215,10 +215,13 @@ story.append(bullet("עתיד: תיק מרובה-מניות, התראות אוט
 # 9. Deployment
 story.append(p("9. פריסה", H2))
 story.append(p(
-    "האפליקציה ארוזה ב-Docker (Dockerfile בשורש הפרויקט) ומיועדת לפריסה כ-Space "
-    "מסוג Docker ב-Hugging Face Spaces — קובץ ה-README כולל את ה-frontmatter "
-    "הנדרש (sdk: docker, app_port: 7860). יש להגדיר את מפתחות ה-API ו-DATABASE_URL "
-    "כ-Secrets בהגדרות ה-Space. פירוט מלא מופיע ב-README."))
+    "האפליקציה פרוסה וחיה ב-Streamlit Community Cloud, נבנית ישירות מה-branch "
+    "הראשי של ה-Repository: ai-investment-advisor-0.streamlit.app"))
+story.append(p(
+    "לחלופין, האפליקציה ארוזה גם ב-Docker (Dockerfile בשורש הפרויקט) ומתאימה "
+    "לפריסה בכל שירות מבוסס-קונטיינר (למשל Hugging Face Spaces מסוג Docker). "
+    "בשני המקרים יש להגדיר את מפתחות ה-API ו-DATABASE_URL כמשתני סביבה/Secrets "
+    "בהגדרות הפלטפורמה. פירוט מלא מופיע ב-README."))
 
 # Footer disclaimer
 story.append(Spacer(1, 8))
