@@ -46,6 +46,7 @@ from dataclasses import dataclass, field
 from typing import List, Optional
 
 from config import settings
+from src.analysis.correlation import cluster_weights
 from src.analysis.sentiment import SentimentResult
 from src.analysis.technical import TechnicalSummary
 
@@ -129,6 +130,61 @@ def _mean_component_score(components: List[Component]) -> Optional[float]:
     return sum(c.points for c in components) / len(components) * 100.0
 
 
+def _weighted_component_score(
+    components: List[Component], weights: dict
+) -> Optional[float]:
+    if not components:
+        return None
+    total_weight = sum(weights.get(c.name, 0.0) for c in components)
+    if total_weight <= 0:
+        return _mean_component_score(components)
+    return sum(c.points * weights.get(c.name, 0.0) for c in components) / total_weight * 100.0
+
+
+# Maps each collinear MA-relationship Component name to its column in
+# TechnicalSummary.trend_signal_history (see src/analysis/technical.py).
+_TREND_SIGNAL_COLUMNS = {
+    "Price > SMA200": "price_gt_sma200",
+    "Price > SMA50": "price_gt_sma50",
+    "SMA50 > SMA200": "sma50_gt_sma200",
+    "EMA20 > EMA50": "ema20_gt_ema50",
+    "EMA50 > EMA200": "ema50_gt_ema200",
+    "Price > EMA20": "price_gt_ema20",
+}
+_MIN_ROWS_FOR_CORRELATION = 30
+
+
+def _trend_weights(
+    t: TechnicalSummary, comps: List[Component], adx_comp: Optional[Component]
+) -> Optional[dict]:
+    """
+    Weight each Trend sub-signal using correlation-based de-duplication
+    (src.analysis.correlation.cluster_weights), so a handful of collinear MA
+    relationships (Price>SMA50, Price>SMA200, SMA50>SMA200, ...) don't get
+    counted as independent bullish/bearish votes for the same underlying
+    trend. ADX keeps its own fixed share (settings.trend_adx_share) since it
+    measures trend *strength*, a genuinely different concept from the MA
+    crossover cluster. Falls back to equal weighting (None) when there isn't
+    enough history to compute a meaningful correlation matrix.
+    """
+    hist = t.trend_signal_history
+    ma_names = [c.name for c in comps if c.name in _TREND_SIGNAL_COLUMNS]
+    if hist is None or len(hist) < _MIN_ROWS_FOR_CORRELATION or not ma_names:
+        return None
+
+    cols = [_TREND_SIGNAL_COLUMNS[n] for n in ma_names]
+    col_weights = cluster_weights(hist[cols].astype(float), threshold=settings.correlation_threshold)
+
+    ma_share = 1.0 - settings.trend_adx_share if adx_comp is not None else 1.0
+    weights = {
+        name: col_weights.get(_TREND_SIGNAL_COLUMNS[name], 0.0) * ma_share
+        for name in ma_names
+    }
+    if adx_comp is not None:
+        weights[adx_comp.name] = settings.trend_adx_share
+    return weights
+
+
 # --------------------------------------------------------------------------- #
 # Category scorers
 # --------------------------------------------------------------------------- #
@@ -167,7 +223,10 @@ def _score_trend(t: TechnicalSummary) -> CategoryScore:
         "Price above the 20-day EMA — short-term up.",
         "Price below the 20-day EMA — short-term down.")
 
-    # ADX confirms how *strong* and which direction the trend is.
+    # ADX confirms how *strong* and which direction the trend is. Kept as an
+    # independent signal (see _trend_weights) since it measures conviction,
+    # not just direction, so it isn't collinear with the MA-cross cluster.
+    adx_comp: Optional[Component] = None
     if t.adx is not None and t.plus_di is not None and t.minus_di is not None:
         if t.adx < 20:
             pts, detail = 0.5, f"ADX {t.adx:.0f}: trend too weak to confirm direction."
@@ -179,9 +238,15 @@ def _score_trend(t: TechnicalSummary) -> CategoryScore:
                 f"ADX {t.adx:.0f}: {'strong' if strong else 'developing'} "
                 f"{'up' if up else 'down'}trend (+DI {t.plus_di:.0f} / -DI {t.minus_di:.0f})."
             )
-        comps.append(Component("ADX trend confirmation", detail, pts))
+        adx_comp = Component("ADX trend confirmation", detail, pts)
+        comps.append(adx_comp)
 
-    return CategoryScore("Trend", settings.weight_trend, _mean_component_score(comps), comps)
+    weights = _trend_weights(t, comps, adx_comp)
+    score = (
+        _weighted_component_score(comps, weights)
+        if weights is not None else _mean_component_score(comps)
+    )
+    return CategoryScore("Trend", settings.weight_trend, score, comps)
 
 
 def _score_momentum(t: TechnicalSummary) -> CategoryScore:

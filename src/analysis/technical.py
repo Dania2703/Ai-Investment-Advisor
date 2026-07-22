@@ -96,6 +96,10 @@ class TechnicalSummary:
     # ---- Transparent per-indicator breakdown ----------------------------
     indicators: List[Indicator] = field(default_factory=list)
 
+    # ---- Historical boolean trend signals, for correlation-based
+    # de-duplication in the scoring engine (see src.analysis.correlation) --
+    trend_signal_history: Optional[pd.DataFrame] = None
+
     def as_dict(self) -> dict:
         """Flat dict for persistence / logging (back-compatible keys kept)."""
         return {
@@ -191,6 +195,15 @@ def analyze(history: pd.DataFrame) -> TechnicalSummary:
     vol_sma_s = ind.volume_sma(volume, settings.volume_sma_period)
     support, resistance = ind.support_resistance(high, low, settings.sr_lookback)
 
+    trend_signal_history = pd.DataFrame({
+        "price_gt_sma200": close > sma200,
+        "price_gt_sma50": close > sma50,
+        "sma50_gt_sma200": sma50 > sma200,
+        "ema20_gt_ema50": ema20 > ema50,
+        "ema50_gt_ema200": ema50 > ema200,
+        "price_gt_ema20": close > ema20,
+    }).dropna(how="any")
+
     # ---- Latest scalar values -------------------------------------------
     summary = TechnicalSummary(
         price=price,
@@ -222,6 +235,7 @@ def analyze(history: pd.DataFrame) -> TechnicalSummary:
         obv_ema=_latest(obv_ema_s),
         support=support,
         resistance=resistance,
+        trend_signal_history=trend_signal_history,
     )
 
     if summary.atr is not None and price:
