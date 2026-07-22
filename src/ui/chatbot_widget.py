@@ -48,7 +48,7 @@ def _inject_css() -> None:
             right: 26px;
             z-index: 100000;
         }}
-        div.st-key-{_FAB_KEY} div[data-testid="stPopover"] > div > button {{
+        div.st-key-{_FAB_KEY} div[data-testid="stPopover"] button {{
             border-radius: 999px !important;
             padding: 12px 20px !important;
             font-weight: 700 !important;
@@ -57,7 +57,7 @@ def _inject_css() -> None:
             border: none !important;
             box-shadow: 0 10px 26px rgba(34,211,238,0.28) !important;
         }}
-        div.st-key-{_FAB_KEY} div[data-testid="stPopover"] > div > button:hover {{ filter: brightness(1.08); }}
+        div.st-key-{_FAB_KEY} div[data-testid="stPopover"] button:hover {{ filter: brightness(1.08); }}
 
         /* The expanded chat panel */
         div.st-key-{_FAB_KEY} div[data-testid="stPopoverBody"] {{

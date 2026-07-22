@@ -76,8 +76,12 @@ a:hover { text-decoration: underline; }
   box-shadow: 0 0 0 3px var(--brand-dim) !important;
 }
 
-/* ---- Buttons ------------------------------------------------------------ */
-.stButton > button, div[data-testid="stBaseButton-secondary"] {
+/* ---- Buttons -------------------------------------------------------------
+   Descendant (space) combinators, not direct-child (>): Streamlit nests the
+   real <button> a variable number of divs deep depending on version, and a
+   strict ">" selector silently matches nothing if that depth is off. */
+.stButton button, div[data-testid^="stBaseButton"] button,
+button[data-testid^="stBaseButton"], div[data-testid^="stBaseButton"] {
   border-radius: var(--radius) !important;
   border: 1px solid var(--border) !important;
   background: var(--surface-2) !important;
@@ -85,19 +89,36 @@ a:hover { text-decoration: underline; }
   font-weight: 600 !important;
   transition: transform .12s ease, border-color .12s ease, color .12s ease;
 }
-.stButton > button:hover {
+.stButton button:hover, button[data-testid^="stBaseButton"]:hover {
   border-color: var(--border-strong) !important;
   color: var(--text) !important;
   transform: translateY(-1px);
 }
-.stButton > button[kind="primary"], div[data-testid="stBaseButton-primary"] {
+.stButton button[kind="primary"], div[data-testid="stBaseButton-primary"],
+button[data-testid="stBaseButton-primary"], div[data-testid="stBaseButton-primary"] button {
   background: var(--brand) !important;
   color: #04222A !important;
   border: 1px solid transparent !important;
   box-shadow: 0 6px 20px rgba(34,211,238,0.25);
 }
-.stButton > button[kind="primary"]:hover { filter: brightness(1.06); color: #04222A !important; }
-.stButton > button p, .stButton > button span { color: inherit !important; }
+.stButton button[kind="primary"]:hover { filter: brightness(1.06); color: #04222A !important; }
+.stButton button p, .stButton button span,
+button[data-testid^="stBaseButton"] p, button[data-testid^="stBaseButton"] span {
+  color: inherit !important;
+}
+
+/* ---- Popover trigger buttons (e.g. account menu) — theme-aware default.
+   More specific, scoped rules (like the chatbot FAB) still win over this. */
+div[data-testid="stPopover"] button {
+  background: var(--surface-2) !important;
+  color: var(--text-2) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius) !important;
+  font-weight: 600 !important;
+}
+div[data-testid="stPopover"] button p,
+div[data-testid="stPopover"] button span { color: inherit !important; }
+div[data-testid="stPopover"] button:hover { border-color: var(--border-strong) !important; }
 
 /* ---- Tables ------------------------------------------------------------- */
 div[data-testid="stDataFrame"] { border: 1px solid var(--border); border-radius: var(--radius); }
