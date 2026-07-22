@@ -177,7 +177,7 @@ story.append(p(
     "שטרם מומש."))
 
 # 6b. The bug-fix story (audit) — reported honestly, including what's NOT wired yet
-story.append(p("6.1 אבחון הטיה שיטתית — docs/AUDIT.md", H2))
+story.append(p("6.1 אבחון הטיה שיטתית", H2))
 story.append(p(
     "בבדיקה מול TradingView נמצא שהמנוע המקורי נטה בעקביות ל-'Strong Buy' גם "
     "כשאתרים אחרים סימנו Sell/Neutral. הסיבה שאובחנה: שישה-שבעה אינדיקטורי "
@@ -189,8 +189,7 @@ story.append(p(
     "מ-scoring.py — קטגוריית Trend שם עדיין ממצעת את תת-האינדיקטורים "
     "באופן שווה. מה שכן יושם בפועל: הגבלת משקל המגמה ל-35% (בהשוואה ל-40% "
     "המקורי), ורכיב הסכמה-בין-קטגוריות שנוסף לחישוב רמת הביטחון. חיבור "
-    "correlation.py לצינור הניקוד הוא פריט הפיתוח הבא בעדיפות הגבוהה ביותר. "
-    "התהליך המלא מתועד ב-docs/AUDIT.md."))
+    "correlation.py לצינור הניקוד הוא פריט הפיתוח הבא בעדיפות הגבוהה ביותר."))
 
 # 7. Robustness / testing
 story.append(p("7. עמידות ובדיקות", H2))
