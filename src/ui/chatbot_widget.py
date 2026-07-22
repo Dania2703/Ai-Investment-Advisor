@@ -31,19 +31,24 @@ _SUGGESTIONS = [
 ]
 
 
+_FAB_KEY = "chat_fab_container"
+
+
 def _inject_css() -> None:
     p = PALETTE
     st.markdown(
         f"""
         <style>
-        /* Pin the (single) popover trigger to the bottom-right as a FAB */
-        div[data-testid="stPopover"] {{
+        /* Pin ONLY the chatbot's own popover trigger to the bottom-right as a
+           FAB. Scoped to .st-key-{_FAB_KEY} so it can't also hijack other
+           st.popover instances on the page (e.g. the account menu). */
+        div.st-key-{_FAB_KEY} div[data-testid="stPopover"] {{
             position: fixed;
             bottom: 26px;
             right: 26px;
             z-index: 100000;
         }}
-        div[data-testid="stPopover"] > div > button {{
+        div.st-key-{_FAB_KEY} div[data-testid="stPopover"] > div > button {{
             border-radius: 999px !important;
             padding: 12px 20px !important;
             font-weight: 700 !important;
@@ -52,10 +57,10 @@ def _inject_css() -> None:
             border: none !important;
             box-shadow: 0 10px 26px rgba(34,211,238,0.28) !important;
         }}
-        div[data-testid="stPopover"] > div > button:hover {{ filter: brightness(1.08); }}
+        div.st-key-{_FAB_KEY} div[data-testid="stPopover"] > div > button:hover {{ filter: brightness(1.08); }}
 
         /* The expanded chat panel */
-        div[data-testid="stPopoverBody"] {{
+        div.st-key-{_FAB_KEY} div[data-testid="stPopoverBody"] {{
             width: 420px !important;
             max-width: 92vw !important;
             background: {p['surface']} !important;
@@ -88,7 +93,8 @@ def render_floating_chatbot(ticker: str, context: str) -> None:
     key = _history_key(ticker)
     history = st.session_state.setdefault(key, [])
 
-    with st.popover("💬  Ask the Advisor", use_container_width=False):
+    fab = st.container(key=_FAB_KEY)
+    with fab, st.popover("💬  Ask the Advisor", use_container_width=False):
         p = PALETTE
         st.markdown(
             f"<div style='font-weight:700;font-size:15px;'>AI Advisor "
