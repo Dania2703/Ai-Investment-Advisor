@@ -14,6 +14,12 @@ AI-powered stock analysis tool that combines technical indicators, news sentimen
 
 > Final project · *AI & Innovation in Capital Markets* · Track 3
 
+## 🔗 Live Demo
+
+**[ai-investment-advisor-0.streamlit.app](https://ai-investment-advisor-0.streamlit.app/)**
+
+Deployed on Streamlit Community Cloud, built directly from this repository's `main` branch (`app.py`, `requirements.txt`).
+
 ---
 
 ## Tech Stack
@@ -31,7 +37,7 @@ AI-powered stock analysis tool that combines technical indicators, news sentimen
 | **Sentiment** | FinBERT (fallback: VADER) |
 | **Charts** | TradingView Lightweight Charts (dark theme) |
 | **Chatbot** | Floating RAG assistant — Groq (Llama 3.3) / Gemini |
-| **Deployment** | Hugging Face Spaces (Docker) |
+| **Deployment** | Streamlit Community Cloud ([live demo](https://ai-investment-advisor-0.streamlit.app/)) — a `Dockerfile` is also included for Docker-based hosts |
 
 ### Folder structure
 
@@ -188,12 +194,18 @@ determinism. `tests/test_validation.py` runs sanity checks on real tickers.
 
 ---
 
-## Deploy to Hugging Face Spaces
+## Deployment
 
-1. Create a Space at [huggingface.co](https://huggingface.co) → **Docker** SDK
-2. Push all project files (or connect the GitHub repo)
-3. Add API keys under **Settings → Secrets**
-4. The Space will build and deploy automatically
+**Live app:** [ai-investment-advisor-0.streamlit.app](https://ai-investment-advisor-0.streamlit.app/)
+
+### Streamlit Community Cloud (used for the live demo above)
+1. Go to [share.streamlit.io](https://share.streamlit.io) → **Create app** → **Deploy a public app from GitHub**
+2. Repository: this repo · Branch: `main` · Main file path: `app.py`
+3. Under **Advanced settings**, set the Python version to **3.11** and add all required keys under **Secrets** (TOML format — see [API Keys](#api-keys) below)
+4. Deploy — the app rebuilds automatically on every push to `main`
+
+### Docker (Hugging Face Spaces, Render, or any container host)
+A `Dockerfile` is included and listens on port `7860`. Build and run it directly, or push to a Docker-type Hugging Face Space and add the same keys under **Settings → Secrets**.
 
 ---
 
