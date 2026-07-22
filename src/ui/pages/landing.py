@@ -64,10 +64,7 @@ def render() -> None:
           </div>
           <div style="font-size:54px;font-weight:800;line-height:1.05;margin-top:14px;">
             Institutional-grade stock analysis,<br>
-            <span style="background:linear-gradient(135deg,{p['accent']},{p['accent_2']});
-                  -webkit-background-clip:text;-webkit-text-fill-color:transparent;">
-              explained, not guessed.
-            </span>
+            <span style="color:{p['accent']};">explained, not guessed.</span>
           </div>
           <div class="ai-muted" style="font-size:18px;max-width:680px;margin:18px auto 0;">
             Enter any ticker and get a transparent, data-driven verdict — technical
