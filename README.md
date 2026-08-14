@@ -14,7 +14,7 @@ AI-powered stock analysis tool that combines technical indicators, news sentimen
 
 > Final project · *AI & Innovation in Capital Markets* · Track 3
 
-## 🔗 Live Demo
+## 🔗 Live Demo: https://drive.google.com/file/d/16c3wb9lCzy5vPxlKgBZIckp6_XxQsRZK/view?usp=drive_link
 
 **[ai-investment-advisor-0.streamlit.app](https://ai-investment-advisor-0.streamlit.app/)**
 
